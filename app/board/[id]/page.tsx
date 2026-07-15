@@ -186,13 +186,30 @@ export default function BoardPage({ params }: { params: { id: string } }) {
 
   return (
     <main className="h-screen flex flex-col">
+      <div
+        className="h-1 shrink-0"
+        style={{ backgroundColor: board?.color || 'transparent' }}
+      />
       <header className="px-6 py-4 flex items-center gap-4 bg-black/10">
-        <Link href="/" className="text-white/60 hover:text-white text-sm">
-          ← Boards
+        <Link
+          href="/"
+          className="text-white/60 hover:text-white text-sm flex items-center gap-1 transition-colors"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M19 12H5M11 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          Boards
         </Link>
-        <h1 className="font-display font-semibold text-white text-lg">
+        <div className="w-px h-4 bg-white/15" />
+        <h1 className="font-display font-semibold text-white text-lg truncate">
           {board?.title || 'Loading…'}
         </h1>
+        {board && (
+          <span className="text-white/40 text-xs shrink-0 ml-auto">
+            {lists.length} list{lists.length === 1 ? '' : 's'} · {cards.length} card
+            {cards.length === 1 ? '' : 's'}
+          </span>
+        )}
       </header>
 
       <div className="flex-1 overflow-x-auto px-6 py-5">
@@ -220,25 +237,27 @@ export default function BoardPage({ params }: { params: { id: string } }) {
             </SortableContext>
 
             {addingList ? (
-              <form onSubmit={addList} className="w-72 shrink-0 bg-board rounded-xl p-2.5">
+              <form onSubmit={addList} className="w-72 shrink-0 bg-board rounded-xl p-2.5 animate-list-in">
                 <input
                   autoFocus
                   value={newListTitle}
                   onChange={(e) => setNewListTitle(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Escape' && setAddingList(false)}
                   placeholder="List name…"
-                  className="w-full bg-white rounded-lg px-3 py-2 text-sm outline-none ring-1 ring-line focus:ring-accent"
+                  className="w-full bg-white rounded-lg px-3 py-2 text-sm outline-none ring-1 ring-line focus:ring-accent transition-shadow"
                 />
                 <div className="flex gap-2 mt-2">
                   <button
                     type="submit"
-                    className="bg-accent text-white text-xs font-medium px-3 py-1.5 rounded-lg"
+                    disabled={!newListTitle.trim()}
+                    className="bg-accent disabled:opacity-40 disabled:cursor-not-allowed hover:bg-accent/90 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
                   >
                     Add list
                   </button>
                   <button
                     type="button"
                     onClick={() => setAddingList(false)}
-                    className="text-muted text-xs px-2"
+                    className="text-muted hover:text-ink text-xs px-2"
                   >
                     Cancel
                   </button>
@@ -247,16 +266,17 @@ export default function BoardPage({ params }: { params: { id: string } }) {
             ) : (
               <button
                 onClick={() => setAddingList(true)}
-                className="w-72 shrink-0 text-left text-white/70 hover:bg-white/10 text-sm px-3 py-2.5 rounded-xl transition-colors"
+                className="w-72 shrink-0 text-left text-white/70 hover:bg-white/10 text-sm px-3 py-2.5 rounded-xl transition-colors flex items-center gap-1.5"
               >
-                + Add another list
+                <span className="text-base leading-none">+</span>
+                {lists.length === 0 ? 'Add your first list' : 'Add another list'}
               </button>
             )}
           </div>
 
           <DragOverlay>
             {activeCard ? (
-              <div className="w-72">
+              <div className="w-72 rotate-3 scale-105 shadow-cardHover rounded-card">
                 <Card card={activeCard} onOpen={() => {}} />
               </div>
             ) : null}
