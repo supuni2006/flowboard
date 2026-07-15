@@ -101,3 +101,4 @@ lib/supabase.ts          → Supabase client
 types/index.ts            → shared TypeScript types
 supabase/schema.sql       → full database schema + RLS policies
 ```
+hi
