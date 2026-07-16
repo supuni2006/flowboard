@@ -14,6 +14,8 @@ export type List = {
   created_at: string
 }
 
+export type CardStatus = 'upcoming' | 'ongoing' | 'complete' | 'cancelled' | 'deleted'
+
 export type CardItem = {
   id: string
   list_id: string
@@ -21,6 +23,17 @@ export type CardItem = {
   description: string
   position: number
   due_date: string | null
+  status: CardStatus
+  color: string | null
   created_by: string | null
+  created_at: string
+}
+
+export type Attachment = {
+  id: string
+  card_id: string
+  file_name: string
+  file_url: string
+  file_size: number | null
   created_at: string
 }
