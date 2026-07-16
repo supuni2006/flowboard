@@ -1,7 +1,22 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import type { CardItem } from '@/types'
+import { useEffect, useRef, useState } from 'react'
+import { supabase } from '@/lib/supabase'
+import type { Attachment, CardItem, CardStatus } from '@/types'
+
+const STATUS_META: Record<CardStatus, { label: string; dot: string; badge: string }> = {
+  upcoming: { label: 'Upcoming', dot: 'bg-sky-500', badge: 'bg-sky-100 text-sky-700' },
+  ongoing: { label: 'Ongoing', dot: 'bg-amber-500', badge: 'bg-amber-100 text-amber-700' },
+  complete: { label: 'Complete', dot: 'bg-emerald-500', badge: 'bg-emerald-100 text-emerald-700' },
+  cancelled: { label: 'Cancelled', dot: 'bg-red-500', badge: 'bg-red-100 text-red-700' },
+  deleted: { label: 'Deleted', dot: 'bg-gray-400', badge: 'bg-gray-200 text-gray-600' },
+}
+
+const STATUS_ORDER: CardStatus[] = ['upcoming', 'ongoing', 'complete', 'cancelled', 'deleted']
+
+const CARD_COLORS = ['#3D7BFF', '#FFB020', '#2BB673', '#E5484D', '#8B5CF6', '#0EA5E9']
+
+const BUCKET = 'card-attachments'
 
 export default function CardModal({
   card,
@@ -16,10 +31,15 @@ export default function CardModal({
 }) {
   const [title, setTitle] = useState(card.title)
   const [description, setDescription] = useState(card.description)
-  const [dueDate, setDueDate] = useState(
-    card.due_date ? card.due_date.slice(0, 10) : ''
-  )
+  const [dueDate, setDueDate] = useState(card.due_date ? card.due_date.slice(0, 10) : '')
+  const [status, setStatus] = useState<CardStatus>(card.status ?? 'upcoming')
+  const [color, setColor] = useState<string | null>(card.color)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
+
+  const [attachments, setAttachments] = useState<Attachment[]>([])
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -29,11 +49,87 @@ export default function CardModal({
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [onClose])
 
+  useEffect(() => {
+    loadAttachments()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [card.id])
+
+  async function loadAttachments() {
+    const { data, error } = await supabase
+      .from('attachments')
+      .select('*')
+      .eq('card_id', card.id)
+      .order('created_at', { ascending: true })
+
+    if (!error) setAttachments((data as Attachment[]) || [])
+  }
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      setUploadError('Only image files are supported right now.')
+      e.target.value = ''
+      return
+    }
+
+    setUploading(true)
+    setUploadError(null)
+
+    const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')
+    const path = `${card.id}/${crypto.randomUUID()}-${safeName}`
+
+    const { error: storageError } = await supabase.storage.from(BUCKET).upload(path, file, {
+      cacheControl: '3600',
+      upsert: false,
+    })
+
+    if (storageError) {
+      setUploadError(storageError.message)
+      setUploading(false)
+      e.target.value = ''
+      return
+    }
+
+    const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path)
+
+    const { data, error: insertError } = await supabase
+      .from('attachments')
+      .insert({
+        card_id: card.id,
+        file_name: file.name,
+        file_url: urlData.publicUrl,
+        file_path: path,
+        file_size: file.size,
+      })
+      .select()
+      .single()
+
+    if (insertError) {
+      setUploadError(insertError.message)
+      await supabase.storage.from(BUCKET).remove([path])
+    } else if (data) {
+      setAttachments((prev) => [...prev, data as Attachment])
+    }
+
+    setUploading(false)
+    e.target.value = ''
+  }
+
+  async function removeAttachment(att: Attachment) {
+    setAttachments((prev) => prev.filter((a) => a.id !== att.id))
+    await supabase.storage.from(BUCKET).remove([att.file_path])
+    await supabase.from('attachments').delete().eq('id', att.id)
+  }
+
   function save() {
     onSave(card.id, {
       title: title.trim() || card.title,
       description,
       due_date: dueDate ? new Date(dueDate).toISOString() : null,
+      status,
+      color,
     })
     onClose()
   }
@@ -53,9 +149,11 @@ export default function CardModal({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-surface rounded-xl w-full max-w-lg shadow-2xl animate-modal-in overflow-hidden"
+        className="bg-surface rounded-xl w-full max-w-lg shadow-2xl animate-modal-in overflow-hidden max-h-[90vh] flex flex-col"
       >
-        <div className="flex items-start justify-between px-6 pt-6">
+        {color && <div className="h-1.5 shrink-0" style={{ backgroundColor: color }} />}
+
+        <div className="flex items-start justify-between px-6 pt-6 shrink-0">
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -75,7 +173,70 @@ export default function CardModal({
           </button>
         </div>
 
-        <div className="px-6 pb-6 pt-2">
+        <div className="px-6 pb-6 pt-2 overflow-y-auto">
+          {/* STATUS */}
+          <label className="flex items-center gap-1.5 text-xs font-medium text-muted uppercase tracking-wide mb-1.5">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 7v5l3 3" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Status
+          </label>
+          <div className="flex flex-wrap gap-1.5 mb-5">
+            {STATUS_ORDER.map((s) => {
+              const meta = STATUS_META[s]
+              const active = status === s
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setStatus(s)}
+                  className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border transition-colors ${
+                    active
+                      ? `${meta.badge} border-transparent ring-2 ring-offset-1 ring-accent/40`
+                      : 'bg-board text-muted border-line hover:bg-black/5'
+                  }`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
+                  {meta.label}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* COLOR */}
+          <label className="flex items-center gap-1.5 text-xs font-medium text-muted uppercase tracking-wide mb-1.5">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="9" />
+            </svg>
+            Card color
+          </label>
+          <div className="flex items-center gap-2 mb-5">
+            <button
+              type="button"
+              onClick={() => setColor(null)}
+              aria-label="No color"
+              className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-[10px] text-muted ${
+                color === null ? 'border-accent' : 'border-line'
+              } bg-board`}
+            >
+              ✕
+            </button>
+            {CARD_COLORS.map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setColor(c)}
+                aria-label={`Set color ${c}`}
+                className={`w-6 h-6 rounded-full border-2 transition-transform ${
+                  color === c ? 'border-accent scale-110' : 'border-transparent hover:scale-105'
+                }`}
+                style={{ backgroundColor: c }}
+              />
+            ))}
+          </div>
+
+          {/* DESCRIPTION */}
           <label className="flex items-center gap-1.5 text-xs font-medium text-muted uppercase tracking-wide mb-1.5">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M4 6h16M4 12h16M4 18h10" strokeLinecap="round" />
@@ -90,6 +251,7 @@ export default function CardModal({
             className="w-full bg-board rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-accent resize-none mb-5 transition-shadow"
           />
 
+          {/* DUE DATE */}
           <label className="flex items-center gap-1.5 text-xs font-medium text-muted uppercase tracking-wide mb-1.5">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <rect x="3" y="4" width="18" height="18" rx="2" />
@@ -97,7 +259,7 @@ export default function CardModal({
             </svg>
             Due date
           </label>
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-5">
             <input
               type="date"
               value={dueDate}
@@ -114,12 +276,71 @@ export default function CardModal({
             )}
           </div>
 
+          {/* ATTACHMENTS */}
+          <label className="flex items-center gap-1.5 text-xs font-medium text-muted uppercase tracking-wide mb-1.5">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2v-7M17 8l-5-5-5 5M12 3v13" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Attachments
+          </label>
+
+          <div className="flex flex-wrap gap-2 mb-2">
+            {attachments.map((att) => (
+              <div
+                key={att.id}
+                className="relative w-20 h-20 rounded-lg overflow-hidden bg-board group/att"
+              >
+                <img
+                  src={att.file_url}
+                  alt={att.file_name}
+                  className="w-full h-full object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeAttachment(att)}
+                  aria-label={`Remove ${att.file_name}`}
+                  className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white text-[10px] flex items-center justify-center opacity-0 group-hover/att:opacity-100 transition-opacity"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="w-20 h-20 rounded-lg border-2 border-dashed border-line hover:border-accent hover:bg-black/5 flex flex-col items-center justify-center text-muted transition-colors disabled:opacity-50"
+            >
+              {uploading ? (
+                <span className="text-[10px]">Uploading…</span>
+              ) : (
+                <>
+                  <span className="text-lg leading-none">+</span>
+                  <span className="text-[10px] mt-0.5">Add image</span>
+                </>
+              )}
+            </button>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+          </div>
+
+          {uploadError && (
+            <p className="text-[11px] text-red-600 mb-2">{uploadError}</p>
+          )}
+
           {createdLabel && (
-            <p className="text-[11px] text-muted/70 mt-5">Created {createdLabel}</p>
+            <p className="text-[11px] text-muted/70 mt-3">Created {createdLabel}</p>
           )}
         </div>
 
-        <div className="flex items-center justify-between px-6 py-4 border-t border-line bg-board/50">
+        <div className="flex items-center justify-between px-6 py-4 border-t border-line bg-board/50 shrink-0">
           {confirmingDelete ? (
             <div className="flex items-center gap-2 animate-fade-in">
               <span className="text-xs text-muted">Delete this card?</span>

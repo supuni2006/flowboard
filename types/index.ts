@@ -29,11 +29,13 @@ export type CardItem = {
   created_at: string
 }
 
+
 export type Attachment = {
   id: string
   card_id: string
   file_name: string
   file_url: string
+  file_path: string
   file_size: number | null
   created_at: string
 }

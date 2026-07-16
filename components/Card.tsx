@@ -26,6 +26,8 @@ const TONE_STYLES: Record<string, string> = {
   upcoming: 'bg-board text-muted',
 }
 
+const STATUS_ORDER: CardStatus[] = ['upcoming', 'ongoing', 'complete', 'cancelled', 'deleted']
+
 const STATUS_META: Record<CardStatus, { label: string; badge: string }> = {
   upcoming: { label: 'Upcoming', badge: 'bg-sky-100 text-sky-700' },
   ongoing: { label: 'Ongoing', badge: 'bg-amber-100 text-amber-700' },
@@ -37,9 +39,11 @@ const STATUS_META: Record<CardStatus, { label: string; badge: string }> = {
 export default function Card({
   card,
   onOpen,
+  onStatusChange,
 }: {
   card: CardItem
   onOpen: (card: CardItem) => void
+  onStatusChange: (cardId: string, status: CardStatus) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: card.id, data: { type: 'card', card } })
@@ -75,10 +79,7 @@ export default function Card({
       }`}
     >
       {card.color && (
-        <div
-          className="h-1 -mx-3 -mt-2.5 mb-2"
-          style={{ backgroundColor: card.color }}
-        />
+        <div className="h-1 -mx-3 -mt-2.5 mb-2" style={{ backgroundColor: card.color }} />
       )}
 
       <p className={`text-sm text-ink leading-snug ${status === 'deleted' ? 'line-through' : ''}`}>
@@ -86,9 +87,29 @@ export default function Card({
       </p>
 
       <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-        <span className={`inline-flex items-center text-[11px] font-medium px-1.5 py-0.5 rounded ${statusMeta.badge}`}>
-          {statusMeta.label}
-        </span>
+        {/* Quick status picker — click doesn't open the card */}
+        <select
+          value={status}
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+          onChange={(e) => {
+            e.stopPropagation()
+            onStatusChange(card.id, e.target.value as CardStatus)
+          }}
+          className={`appearance-none cursor-pointer text-[11px] font-medium pl-1.5 pr-4 py-0.5 rounded outline-none ${statusMeta.badge}`}
+          style={{
+            backgroundImage:
+              "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 24 24' fill='none' stroke='%23555' stroke-width='3'><path d='M6 9l6 6 6-6'/></svg>\")",
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'right 4px center',
+          }}
+        >
+          {STATUS_ORDER.map((s) => (
+            <option key={s} value={s}>
+              {STATUS_META[s].label}
+            </option>
+          ))}
+        </select>
 
         {due && (
           <span

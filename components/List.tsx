@@ -13,6 +13,7 @@ export default function List({
   onOpenCard,
   onRenameList,
   onDeleteList,
+  onStatusChange,
 }: {
   list: ListType
   cards: CardItem[]
@@ -20,6 +21,7 @@ export default function List({
   onOpenCard: (card: CardItem) => void
   onRenameList: (listId: string, title: string) => void
   onDeleteList: (listId: string) => void
+  onStatusChange: (cardId: string, status: CardItem['status']) => void
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: list.id, data: { type: 'list', list } })
   const [addingCard, setAddingCard] = useState(false)
@@ -115,7 +117,12 @@ export default function List({
             </p>
           )}
           {cards.map((card) => (
-            <Card key={card.id} card={card} onOpen={onOpenCard} />
+            <Card
+              key={card.id}
+              card={card}
+              onOpen={onOpenCard}
+              onStatusChange={onStatusChange}
+            />
           ))}
         </SortableContext>
       </div>
