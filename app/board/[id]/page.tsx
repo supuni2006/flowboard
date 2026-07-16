@@ -130,6 +130,16 @@ export default function BoardPage({ params }: { params: { id: string } }) {
     await supabase.from('cards').delete().eq('id', id)
   }
 
+  async function updateCardStatus(id: string, status: CardItem['status']) {
+    setCards(cards.map((c) => (c.id === id ? { ...c, status } : c)))
+    const { error } = await supabase.from('cards').update({ status }).eq('id', id)
+    if (error) {
+      console.error('Failed to update status:', error)
+      // Roll back optimistic update on failure
+      loadCardsAndLists()
+    }
+  }
+
   function handleDragStart(event: DragStartEvent) {
     const card = cards.find((c) => c.id === event.active.id)
     if (card) setActiveCard(card)
@@ -152,7 +162,6 @@ export default function BoardPage({ params }: { params: { id: string } }) {
     let updated = [...cards]
 
     if (activeCardItem.list_id !== targetListId) {
-      // Moved to a different list
       updated = updated.map((c) =>
         c.id === activeCardItem.id ? { ...c, list_id: targetListId } : c
       )
@@ -174,7 +183,6 @@ export default function BoardPage({ params }: { params: { id: string } }) {
 
     setCards(updated)
 
-    // Persist changes for the moved card and any cards whose position shifted
     const targetListCards = updated.filter((c) => c.list_id === targetListId)
     for (const c of targetListCards) {
       await supabase
@@ -232,6 +240,7 @@ export default function BoardPage({ params }: { params: { id: string } }) {
                   onOpenCard={setOpenCard}
                   onRenameList={renameList}
                   onDeleteList={deleteList}
+                  onStatusChange={updateCardStatus}
                 />
               ))}
             </SortableContext>
@@ -277,7 +286,7 @@ export default function BoardPage({ params }: { params: { id: string } }) {
           <DragOverlay>
             {activeCard ? (
               <div className="w-72 rotate-3 scale-105 shadow-cardHover rounded-card">
-                <Card card={activeCard} onOpen={() => {}} />
+                <Card card={activeCard} onOpen={() => {}} onStatusChange={() => {}} />
               </div>
             ) : null}
           </DragOverlay>
