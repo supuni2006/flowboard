@@ -44,14 +44,28 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-canvas px-4 sm:px-6 py-10">
-      <div className="w-full max-w-sm sm:max-w-md">
+    <main className="relative min-h-screen flex items-center justify-center bg-canvas px-4 sm:px-6 py-10 overflow-hidden">
+      {/* Decorative background: soft glows + subtle grid, sits behind everything */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-32 -left-24 h-96 w-96 rounded-full bg-accent/25 blur-[110px]" />
+        <div className="absolute -bottom-32 -right-24 h-96 w-96 rounded-full bg-accent2/20 blur-[110px]" />
+        <div
+          className="absolute inset-0 opacity-[0.07]"
+          style={{
+            backgroundImage:
+              'linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)',
+            backgroundSize: '42px 42px',
+          }}
+        />
+      </div>
+
+      <div className="relative w-full max-w-sm sm:max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl sm:text-4xl font-bold text-white">FlowBoard</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold text-white font-display">FlowBoard</h1>
           <p className="text-gray-400 mt-2 text-sm sm:text-base">Sign in to your workspace</p>
         </div>
 
-        <div className="bg-gray-900 rounded-xl p-6 sm:p-8 shadow-lg space-y-4">
+        <div className="bg-gray-900/80 backdrop-blur-xl rounded-xl p-6 sm:p-8 shadow-2xl ring-1 ring-white/10 space-y-4">
           {error && (
             <div className="bg-red-500/10 border border-red-500/40 text-red-300 text-sm rounded-lg px-3 py-2">
               {error}
@@ -68,7 +82,7 @@ export default function LoginPage() {
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
                 placeholder="Acme Inc"
-                className="w-full p-3 rounded-lg bg-gray-800 text-white text-base outline-none ring-1 ring-transparent focus:ring-blue-500 transition"
+                className="w-full p-3 rounded-lg bg-gray-800/80 text-white text-base outline-none ring-1 ring-transparent focus:ring-blue-500 transition"
               />
               <p className="text-xs text-gray-500 mt-1">
                 Everyone who signs in with this exact company name shares the
@@ -84,7 +98,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full p-3 rounded-lg bg-gray-800 text-white text-base outline-none ring-1 ring-transparent focus:ring-blue-500 transition"
+                className="w-full p-3 rounded-lg bg-gray-800/80 text-white text-base outline-none ring-1 ring-transparent focus:ring-blue-500 transition"
               />
             </div>
 
@@ -96,7 +110,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="At least 6 characters"
-                className="w-full p-3 rounded-lg bg-gray-800 text-white text-base outline-none ring-1 ring-transparent focus:ring-blue-500 transition"
+                className="w-full p-3 rounded-lg bg-gray-800/80 text-white text-base outline-none ring-1 ring-transparent focus:ring-blue-500 transition"
               />
             </div>
 
