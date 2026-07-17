@@ -10,7 +10,13 @@ type AuthContextType = {
   loading: boolean
   // Tries to log in with this email/password. If no account exists yet,
   // it creates one automatically (no confirmation email) and logs in.
-  signInOrSignUp: (email: string, password: string) => Promise<{ error: string | null }>
+  // `company` is only used the first time (account creation) - it decides
+  // which set of boards this person will see/share.
+  signInOrSignUp: (
+    email: string,
+    password: string,
+    company: string
+  ) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
 }
 
@@ -39,8 +45,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  async function signInOrSignUp(email: string, password: string) {
+  async function signInOrSignUp(email: string, password: string, company: string) {
     const trimmedEmail = email.trim().toLowerCase()
+    const trimmedCompany = company.trim()
 
     // 1. Try to log in first (covers the common case: returning user).
     const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -63,7 +70,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email: trimmedEmail,
       password,
       options: {
-        data: { full_name: trimmedEmail.split('@')[0] },
+        data: {
+          full_name: trimmedEmail.split('@')[0],
+          company: trimmedCompany,
+        },
       },
     })
 

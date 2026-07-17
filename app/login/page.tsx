@@ -10,6 +10,7 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [company, setCompany] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
@@ -26,8 +27,13 @@ export default function LoginPage() {
       return
     }
 
+    if (!company.trim()) {
+      setError('Company name is required.')
+      return
+    }
+
     setSubmitting(true)
-    const { error } = await signInOrSignUp(email, password)
+    const { error } = await signInOrSignUp(email, password, company)
     setSubmitting(false)
 
     if (error) {
@@ -42,9 +48,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm sm:max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-3xl sm:text-4xl font-bold text-white">FlowBoard</h1>
-          <p className="text-gray-400 mt-2 text-sm sm:text-base">
-            Sign in with your company email
-          </p>
+          <p className="text-gray-400 mt-2 text-sm sm:text-base">Sign in to your workspace</p>
         </div>
 
         <div className="bg-gray-900 rounded-xl p-6 sm:p-8 shadow-lg space-y-4">
@@ -56,14 +60,30 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
+              <label className="block text-sm text-gray-300 mb-1.5">Company name</label>
+              <input
+                type="text"
+                required
+                autoFocus
+                value={company}
+                onChange={(e) => setCompany(e.target.value)}
+                placeholder="Acme Inc"
+                className="w-full p-3 rounded-lg bg-gray-800 text-white text-base outline-none ring-1 ring-transparent focus:ring-blue-500 transition"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Everyone who signs in with this exact company name shares the
+                same boards. Existing accounts ignore this field.
+              </p>
+            </div>
+
+            <div>
               <label className="block text-sm text-gray-300 mb-1.5">Email</label>
               <input
                 type="email"
                 required
-                autoFocus
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@company.com"
+                placeholder="you@example.com"
                 className="w-full p-3 rounded-lg bg-gray-800 text-white text-base outline-none ring-1 ring-transparent focus:ring-blue-500 transition"
               />
             </div>
@@ -89,9 +109,8 @@ export default function LoginPage() {
             </button>
 
             <p className="text-center text-xs text-gray-500 pt-1">
-              New here? Just enter an email and password above — your account
-              is created automatically. Coworkers who sign in with the same
-              email/password see the same boards; other companies never do.
+              New here? Just fill in the fields above — your account is
+              created automatically.
             </p>
           </form>
         </div>
