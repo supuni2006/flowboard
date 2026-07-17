@@ -153,7 +153,7 @@ export default function CardModal({
       >
         {color && <div className="h-1.5 shrink-0" style={{ backgroundColor: color }} />}
 
-        <div className="flex items-start justify-between px-6 pt-6 shrink-0">
+        <div className="flex items-start justify-between px-4 sm:px-6 pt-5 sm:pt-6 shrink-0">
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -173,7 +173,7 @@ export default function CardModal({
           </button>
         </div>
 
-        <div className="px-6 pb-6 pt-2 overflow-y-auto">
+        <div className="px-4 sm:px-6 pb-6 pt-2 overflow-y-auto">
           {/* STATUS */}
           <label className="flex items-center gap-1.5 text-xs font-medium text-muted uppercase tracking-wide mb-1.5">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -299,7 +299,7 @@ export default function CardModal({
                   type="button"
                   onClick={() => removeAttachment(att)}
                   aria-label={`Remove ${att.file_name}`}
-                  className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white text-[10px] flex items-center justify-center opacity-0 group-hover/att:opacity-100 transition-opacity"
+                  className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white text-[10px] flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover/att:opacity-100 transition-opacity"
                 >
                   ✕
                 </button>
@@ -340,7 +340,7 @@ export default function CardModal({
           )}
         </div>
 
-        <div className="flex items-center justify-between px-6 py-4 border-t border-line bg-board/50 shrink-0">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-4 sm:px-6 py-3 sm:py-4 border-t border-line bg-board/50 shrink-0">
           {confirmingDelete ? (
             <div className="flex items-center gap-2 animate-fade-in">
               <span className="text-xs text-muted">Delete this card?</span>

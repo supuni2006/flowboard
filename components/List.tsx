@@ -48,7 +48,7 @@ export default function List({
   }
 
   return (
-    <div className="w-72 shrink-0 bg-board rounded-xl p-2.5 flex flex-col max-h-full animate-list-in">
+    <div className="w-[85vw] max-w-[300px] sm:w-72 shrink-0 snap-center bg-board rounded-xl p-2.5 flex flex-col max-h-full animate-list-in">
       <div className="flex items-center justify-between px-1 pb-2 gap-2">
         {editingTitle ? (
           <input

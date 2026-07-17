@@ -278,17 +278,17 @@ export default function BoardPage({ params }: { params: { id: string } }) {
         className="h-1 shrink-0"
         style={{ backgroundColor: board?.color || 'transparent' }}
       />
-      <header className="px-6 py-4 flex items-center gap-4 bg-black/10">
+      <header className="px-3 sm:px-6 py-3 sm:py-4 flex flex-wrap items-center gap-2 sm:gap-4 bg-black/10">
         <Link
           href="/"
-          className="text-white/60 hover:text-white text-sm flex items-center gap-1 transition-colors"
+          className="text-white/60 hover:text-white text-sm flex items-center gap-1 transition-colors shrink-0"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M19 12H5M11 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          Boards
+          <span className="hidden sm:inline">Boards</span>
         </Link>
-        <div className="w-px h-4 bg-white/15" />
+        <div className="w-px h-4 bg-white/15 hidden sm:block" />
 
         {editingBoardTitle ? (
           <input
@@ -304,12 +304,12 @@ export default function BoardPage({ params }: { params: { id: string } }) {
                 setEditingBoardTitle(false)
               }
             }}
-            className="font-display font-semibold text-white text-lg bg-white/10 rounded px-2 py-0.5 outline-none ring-1 ring-white/40 min-w-[160px]"
+            className="font-display font-semibold text-white text-lg bg-white/10 rounded px-2 py-0.5 outline-none ring-1 ring-white/40 min-w-[120px] max-w-full"
           />
         ) : (
           <button
             onClick={() => board && setEditingBoardTitle(true)}
-            className="font-display font-semibold text-white text-lg truncate hover:bg-white/10 rounded px-1.5 -mx-1.5 py-0.5 transition-colors text-left"
+            className="font-display font-semibold text-white text-lg truncate max-w-[45vw] sm:max-w-none hover:bg-white/10 rounded px-1.5 -mx-1.5 py-0.5 transition-colors text-left"
           >
             {board?.title || 'Loading…'}
           </button>
@@ -343,7 +343,7 @@ export default function BoardPage({ params }: { params: { id: string } }) {
         </div>
 
         {board && (
-          <span className="text-white/40 text-xs shrink-0 ml-auto">
+          <span className="text-white/40 text-xs shrink-0 sm:ml-auto basis-full sm:basis-auto order-3 sm:order-none">
             {lists.length} list{lists.length === 1 ? '' : 's'} · {cards.length} card
             {cards.length === 1 ? '' : 's'}
           </span>
@@ -383,14 +383,14 @@ export default function BoardPage({ params }: { params: { id: string } }) {
         )}
       </header>
 
-      <div className="flex-1 overflow-x-auto px-6 py-5">
+      <div className="flex-1 overflow-x-auto px-3 sm:px-6 py-3 sm:py-5 snap-x snap-mandatory sm:snap-none">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCorners}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div className="flex gap-4 h-full items-start">
+          <div className="flex gap-3 sm:gap-4 h-full items-start">
             <SortableContext items={lists.map((l) => l.id)} strategy={horizontalListSortingStrategy}>
               {lists.map((list) => (
                 <List
@@ -409,7 +409,7 @@ export default function BoardPage({ params }: { params: { id: string } }) {
             </SortableContext>
 
             {addingList ? (
-              <form onSubmit={addList} className="w-72 shrink-0 bg-board rounded-xl p-2.5 animate-list-in">
+              <form onSubmit={addList} className="w-[85vw] max-w-[300px] sm:w-72 shrink-0 snap-center bg-board rounded-xl p-2.5 animate-list-in">
                 <input
                   autoFocus
                   value={newListTitle}
@@ -438,7 +438,7 @@ export default function BoardPage({ params }: { params: { id: string } }) {
             ) : (
               <button
                 onClick={() => setAddingList(true)}
-                className="w-72 shrink-0 text-left text-white/70 hover:bg-white/10 text-sm px-3 py-2.5 rounded-xl transition-colors flex items-center gap-1.5"
+                className="w-[85vw] max-w-[300px] sm:w-72 shrink-0 snap-center text-left text-white/70 hover:bg-white/10 text-sm px-3 py-2.5 rounded-xl transition-colors flex items-center gap-1.5"
               >
                 <span className="text-base leading-none">+</span>
                 {lists.length === 0 ? 'Add your first list' : 'Add another list'}
