@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   DndContext,
   DragOverlay,
@@ -19,8 +20,12 @@ import List from '@/components/List'
 import Card from '@/components/Card'
 import CardModal from '@/components/CardModal'
 
+const PALETTE = ['#3D7BFF', '#FFB020', '#2BB673', '#E5484D', '#8B5CF6', '#0EA5E9', '#F43F9E', '#14B8A6']
+
 export default function BoardPage({ params }: { params: { id: string } }) {
   const boardId = params.id
+  const router = useRouter()
+
   const [board, setBoard] = useState<Board | null>(null)
   const [lists, setLists] = useState<ListType[]>([])
   const [cards, setCards] = useState<CardItem[]>([])
@@ -31,6 +36,12 @@ export default function BoardPage({ params }: { params: { id: string } }) {
 
   const [editingBoardTitle, setEditingBoardTitle] = useState(false)
   const [boardTitleDraft, setBoardTitleDraft] = useState('')
+
+  const [showColorPicker, setShowColorPicker] = useState(false)
+  const colorPickerRef = useRef<HTMLDivElement>(null)
+
+  const [confirmingDeleteBoard, setConfirmingDeleteBoard] = useState(false)
+  const [deletingBoard, setDeletingBoard] = useState(false)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } })
@@ -61,6 +72,16 @@ export default function BoardPage({ params }: { params: { id: string } }) {
   useEffect(() => {
     if (board) setBoardTitleDraft(board.title)
   }, [board])
+
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (colorPickerRef.current && !colorPickerRef.current.contains(e.target as Node)) {
+        setShowColorPicker(false)
+      }
+    }
+    if (showColorPicker) document.addEventListener('mousedown', onClickOutside)
+    return () => document.removeEventListener('mousedown', onClickOutside)
+  }, [showColorPicker])
 
   async function loadBoard() {
     const { data: boardData } = await supabase
@@ -111,6 +132,38 @@ export default function BoardPage({ params }: { params: { id: string } }) {
       setBoard(previous)
       alert('Could not rename board: ' + error.message)
     }
+  }
+
+  async function changeColor(color: string) {
+    if (!board) return
+    setShowColorPicker(false)
+    if (board.color === color) return
+
+    const previous = board
+    setBoard({ ...board, color })
+
+    const { error } = await supabase.from('boards').update({ color }).eq('id', board.id)
+    if (error) {
+      console.error(error)
+      setBoard(previous)
+      alert('Could not change color: ' + error.message)
+    }
+  }
+
+  async function deleteBoard() {
+    if (!board) return
+    setDeletingBoard(true)
+
+    const { error } = await supabase.from('boards').delete().eq('id', board.id)
+
+    if (error) {
+      console.error(error)
+      alert('Could not delete board: ' + error.message)
+      setDeletingBoard(false)
+      return
+    }
+
+    router.push('/')
   }
 
   async function addList(e: React.FormEvent) {
@@ -262,11 +315,71 @@ export default function BoardPage({ params }: { params: { id: string } }) {
           </button>
         )}
 
+        <div className="relative">
+          <button
+            onClick={() => setShowColorPicker((v) => !v)}
+            aria-label="Change board color"
+            className="w-6 h-6 rounded-full border-2 border-white/40 hover:border-white/70 transition-colors"
+            style={{ backgroundColor: board?.color || 'transparent' }}
+          />
+          {showColorPicker && (
+            <div
+              ref={colorPickerRef}
+              className="absolute left-0 top-8 z-20 bg-gray-900 rounded-lg shadow-2xl p-2.5 grid grid-cols-4 gap-1.5 w-[132px]"
+            >
+              {PALETTE.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => changeColor(c)}
+                  aria-label={`Set color ${c}`}
+                  className={`w-6 h-6 rounded-full border-2 transition-transform ${
+                    board?.color === c ? 'border-white scale-110' : 'border-transparent hover:scale-105'
+                  }`}
+                  style={{ backgroundColor: c }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
         {board && (
           <span className="text-white/40 text-xs shrink-0 ml-auto">
             {lists.length} list{lists.length === 1 ? '' : 's'} · {cards.length} card
             {cards.length === 1 ? '' : 's'}
           </span>
+        )}
+
+        {confirmingDeleteBoard ? (
+          <div className="flex items-center gap-2 shrink-0 animate-fade-in">
+            <span className="text-white/70 text-xs">Delete this board?</span>
+            <button
+              onClick={deleteBoard}
+              disabled={deletingBoard}
+              className="text-white text-xs font-medium bg-red-600 hover:bg-red-700 disabled:opacity-50 rounded px-2 py-1 transition-colors"
+            >
+              {deletingBoard ? 'Deleting…' : 'Delete'}
+            </button>
+            <button
+              onClick={() => setConfirmingDeleteBoard(false)}
+              className="text-white/60 hover:text-white text-xs px-1"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirmingDeleteBoard(true)}
+            aria-label="Delete board"
+            className="shrink-0 text-white/50 hover:text-red-400 hover:bg-white/10 rounded-lg w-7 h-7 flex items-center justify-center transition-colors"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path
+                d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0l-1 14a2 2 0 01-2 2H7a2 2 0 01-2-2L4 6h16z"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
         )}
       </header>
 
