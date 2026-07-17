@@ -11,7 +11,6 @@ type AuthContextType = {
   // Tries to log in with this email/password. If no account exists yet,
   // it creates one automatically (no confirmation email) and logs in.
   signInOrSignUp: (email: string, password: string) => Promise<{ error: string | null }>
-  signInWithGoogle: () => Promise<{ error: string | null }>
   signOut: () => Promise<void>
 }
 
@@ -99,24 +98,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: null }
   }
 
-  async function signInWithGoogle() {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined,
-      },
-    })
-    return { error: error?.message ?? null }
-  }
-
   async function signOut() {
     await supabase.auth.signOut()
   }
 
   return (
-    <AuthContext.Provider
-      value={{ user, session, loading, signInOrSignUp, signInWithGoogle, signOut }}
-    >
+    <AuthContext.Provider value={{ user, session, loading, signInOrSignUp, signOut }}>
       {children}
     </AuthContext.Provider>
   )
