@@ -8,8 +8,10 @@ type AuthContextType = {
   user: User | null
   session: Session | null
   loading: boolean
-  signUp: (email: string, password: string, name: string) => Promise<{ error: string | null }>
-  signIn: (email: string, password: string) => Promise<{ error: string | null }>
+  // Tries to log in with this email/password. If no account exists yet,
+  // it creates one automatically (no confirmation email) and logs in.
+  signInOrSignUp: (email: string, password: string) => Promise<{ error: string | null }>
+  signInWithGoogle: () => Promise<{ error: string | null }>
   signOut: () => Promise<void>
 }
 
@@ -38,17 +40,72 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  async function signUp(email: string, password: string, name: string) {
-    const { error } = await supabase.auth.signUp({
-      email,
+  async function signInOrSignUp(email: string, password: string) {
+    const trimmedEmail = email.trim().toLowerCase()
+
+    // 1. Try to log in first (covers the common case: returning user).
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: trimmedEmail,
       password,
-      options: { data: { full_name: name } },
     })
-    return { error: error?.message ?? null }
+
+    if (!signInError) {
+      return { error: null }
+    }
+
+    // If the password was wrong for an existing account, don't silently
+    // create a new one - surface the real error.
+    if (!signInError.message.toLowerCase().includes('invalid login credentials')) {
+      return { error: signInError.message }
+    }
+
+    // 2. No matching account (or first time this email is used) -> sign up.
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      email: trimmedEmail,
+      password,
+      options: {
+        data: { full_name: trimmedEmail.split('@')[0] },
+      },
+    })
+
+    if (signUpError) {
+      // If it turns out the account DID exist (bad password), say so clearly.
+      if (signUpError.message.toLowerCase().includes('already registered')) {
+        return { error: 'Incorrect password.' }
+      }
+      return { error: signUpError.message }
+    }
+
+    // If email confirmations are disabled in Supabase, signUp already
+    // returns an active session and we're done.
+    if (signUpData.session) {
+      return { error: null }
+    }
+
+    // Otherwise, try logging in right away (works once "Confirm email" is
+    // turned off in Supabase Auth settings).
+    const { error: secondSignInError } = await supabase.auth.signInWithPassword({
+      email: trimmedEmail,
+      password,
+    })
+
+    if (secondSignInError) {
+      return {
+        error:
+          'Account created, but email confirmation is still required. Turn off "Confirm email" in Supabase (Authentication > Sign In / Providers > Email) to allow instant login.',
+      }
+    }
+
+    return { error: null }
   }
 
-  async function signIn(email: string, password: string) {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+  async function signInWithGoogle() {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined,
+      },
+    })
     return { error: error?.message ?? null }
   }
 
@@ -57,7 +114,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider
+      value={{ user, session, loading, signInOrSignUp, signInWithGoogle, signOut }}
+    >
       {children}
     </AuthContext.Provider>
   )
