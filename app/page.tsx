@@ -4,10 +4,21 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import type { Board } from '@/types'
+import { useAuth } from '@/contexts/AuthContext'
+import AuthGuard from '@/components/AuthGuard'
 
 const PALETTE = ['#3D7BFF', '#FFB020', '#2BB673', '#E5484D', '#877323', '#0EA5E9', '#F43F9E', '#14B8A6']
 
 export default function DashboardPage() {
+  return (
+    <AuthGuard>
+      <Dashboard />
+    </AuthGuard>
+  )
+}
+
+function Dashboard() {
+  const { user, signOut } = useAuth()
   const [boards, setBoards] = useState<Board[]>([])
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
@@ -62,7 +73,7 @@ export default function DashboardPage() {
 
     const { data, error } = await supabase
       .from('boards')
-      .insert([{ title: title.trim(), color }])
+      .insert([{ title: title.trim(), color, created_by: user?.id }])
       .select()
       .single()
 
@@ -136,23 +147,33 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="max-w-6xl mx-auto px-6 py-10">
-      <div className="flex items-center justify-between mb-8">
+    <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-4xl font-bold text-white">FlowBoard</h1>
-          <p className="text-gray-400 mt-2">{boards.length} Boards</p>
+          <h1 className="text-3xl sm:text-4xl font-bold text-white">FlowBoard</h1>
+          <p className="text-gray-400 mt-1 sm:mt-2 text-sm sm:text-base">
+            {boards.length} Boards · {user?.email}
+          </p>
         </div>
 
-        <button
-          onClick={() => setCreating(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg"
-        >
-          + New Board
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setCreating(true)}
+            className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-5 py-2 rounded-lg text-sm sm:text-base"
+          >
+            + New Board
+          </button>
+          <button
+            onClick={() => signOut()}
+            className="text-gray-400 hover:text-white text-sm px-3 py-2 rounded-lg transition-colors"
+          >
+            Sign out
+          </button>
+        </div>
       </div>
 
       {creating && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex justify-center items-center">
+        <div className="fixed inset-0 z-50 bg-black/60 flex justify-center items-center px-4">
           <form onSubmit={createBoard} className="bg-gray-900 rounded-xl p-6 w-full max-w-md">
             <h2 className="text-xl text-white mb-4">Create Board</h2>
             <input
@@ -195,7 +216,7 @@ export default function DashboardPage() {
           </button>
         </div>
       ) : (
-        <div className="grid md:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
           {boards.map((board) => (
             <div key={board.id} className="relative group">
               {renamingId === board.id ? (
@@ -261,7 +282,6 @@ export default function DashboardPage() {
 
               {renamingId !== board.id && confirmingDeleteId !== board.id && (
                 <div className="absolute top-3 right-3 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                  {/* Color picker trigger */}
                   <div className="relative">
                     <button
                       onClick={(e) => {
@@ -306,7 +326,6 @@ export default function DashboardPage() {
                     )}
                   </div>
 
-                  {/* Rename trigger */}
                   <button
                     onClick={(e) => startRename(board, e)}
                     aria-label={`Rename ${board.title}`}
@@ -321,7 +340,6 @@ export default function DashboardPage() {
                     </svg>
                   </button>
 
-                  {/* Delete trigger */}
                   <button
                     onClick={(e) => {
                       e.preventDefault()
