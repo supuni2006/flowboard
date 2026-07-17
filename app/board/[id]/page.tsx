@@ -29,6 +29,9 @@ export default function BoardPage({ params }: { params: { id: string } }) {
   const [addingList, setAddingList] = useState(false)
   const [newListTitle, setNewListTitle] = useState('')
 
+  const [editingBoardTitle, setEditingBoardTitle] = useState(false)
+  const [boardTitleDraft, setBoardTitleDraft] = useState('')
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } })
   )
@@ -54,6 +57,10 @@ export default function BoardPage({ params }: { params: { id: string } }) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boardId])
+
+  useEffect(() => {
+    if (board) setBoardTitleDraft(board.title)
+  }, [board])
 
   async function loadBoard() {
     const { data: boardData } = await supabase
@@ -85,6 +92,26 @@ export default function BoardPage({ params }: { params: { id: string } }) {
     setCards(cardsData)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boardId])
+
+  async function renameBoard(newTitle: string) {
+    if (!board) return
+    const trimmed = newTitle.trim()
+    if (!trimmed || trimmed === board.title) {
+      setBoardTitleDraft(board.title)
+      setEditingBoardTitle(false)
+      return
+    }
+    const previous = board
+    setBoard({ ...board, title: trimmed })
+    setEditingBoardTitle(false)
+
+    const { error } = await supabase.from('boards').update({ title: trimmed }).eq('id', board.id)
+    if (error) {
+      console.error(error)
+      setBoard(previous)
+      alert('Could not rename board: ' + error.message)
+    }
+  }
 
   async function addList(e: React.FormEvent) {
     e.preventDefault()
@@ -209,9 +236,32 @@ export default function BoardPage({ params }: { params: { id: string } }) {
           Boards
         </Link>
         <div className="w-px h-4 bg-white/15" />
-        <h1 className="font-display font-semibold text-white text-lg truncate">
-          {board?.title || 'Loading…'}
-        </h1>
+
+        {editingBoardTitle ? (
+          <input
+            autoFocus
+            value={boardTitleDraft}
+            onChange={(e) => setBoardTitleDraft(e.target.value)}
+            onFocus={(e) => e.target.select()}
+            onBlur={() => renameBoard(boardTitleDraft)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+              if (e.key === 'Escape') {
+                setBoardTitleDraft(board?.title || '')
+                setEditingBoardTitle(false)
+              }
+            }}
+            className="font-display font-semibold text-white text-lg bg-white/10 rounded px-2 py-0.5 outline-none ring-1 ring-white/40 min-w-[160px]"
+          />
+        ) : (
+          <button
+            onClick={() => board && setEditingBoardTitle(true)}
+            className="font-display font-semibold text-white text-lg truncate hover:bg-white/10 rounded px-1.5 -mx-1.5 py-0.5 transition-colors text-left"
+          >
+            {board?.title || 'Loading…'}
+          </button>
+        )}
+
         {board && (
           <span className="text-white/40 text-xs shrink-0 ml-auto">
             {lists.length} list{lists.length === 1 ? '' : 's'} · {cards.length} card

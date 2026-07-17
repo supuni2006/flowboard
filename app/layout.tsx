@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+// @ts-ignore: allow CSS side-effect import when type declarations are unavailable
 import './globals.css'
 
 export const metadata: Metadata = {
