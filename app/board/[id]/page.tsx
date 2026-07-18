@@ -21,6 +21,7 @@ import Card from '@/components/Card'
 import CardModal from '@/components/CardModal'
 
 const PALETTE = ['#3D7BFF', '#FFB020', '#2BB673', '#E5484D', '#8B5CF6', '#0EA5E9', '#F43F9E', '#14B8A6']
+const MAX_LISTS = 10
 
 export default function BoardPage({ params }: { params: { id: string } }) {
   const boardId = params.id
@@ -169,6 +170,7 @@ export default function BoardPage({ params }: { params: { id: string } }) {
   async function addList(e: React.FormEvent) {
     e.preventDefault()
     if (!newListTitle.trim()) return
+    if (lists.length >= MAX_LISTS) return
     const { data } = await supabase
       .from('lists')
       .insert({ board_id: boardId, title: newListTitle.trim(), position: lists.length })
@@ -408,7 +410,11 @@ export default function BoardPage({ params }: { params: { id: string } }) {
               ))}
             </SortableContext>
 
-            {addingList ? (
+            {lists.length >= MAX_LISTS ? (
+              <div className="w-[85vw] max-w-[300px] sm:w-72 shrink-0 text-white/50 text-sm px-3 py-2.5">
+                List limit reached ({MAX_LISTS} max per board)
+              </div>
+            ) : addingList ? (
               <form onSubmit={addList} className="w-[85vw] max-w-[300px] sm:w-72 shrink-0 snap-center bg-board rounded-xl p-2.5 animate-list-in">
                 <input
                   autoFocus
