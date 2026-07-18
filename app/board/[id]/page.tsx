@@ -357,13 +357,13 @@ export default function BoardPage({ params }: { params: { id: string } }) {
             <button
               onClick={deleteBoard}
               disabled={deletingBoard}
-              className="text-white text-xs font-medium bg-red-600 hover:bg-red-700 disabled:opacity-50 rounded px-2 py-1 transition-colors"
+              className="text-white text-xs font-medium bg-red-600 hover:bg-red-700 disabled:opacity-50 rounded-lg px-2 py-1 transition-colors"
             >
               {deletingBoard ? 'Deleting…' : 'Delete'}
             </button>
             <button
               onClick={() => setConfirmingDeleteBoard(false)}
-              className="text-white/60 hover:text-white text-xs px-1"
+              className="text-white/60 hover:text-white text-xs px-1.5"
             >
               Cancel
             </button>

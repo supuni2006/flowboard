@@ -79,16 +79,17 @@ export default function List({
         )}
 
         {confirmingDelete ? (
-          <div className="flex items-center gap-1 shrink-0 animate-fade-in">
+          <div className="flex items-center gap-1.5 shrink-0 animate-fade-in">
+            <span className="text-[11px] text-muted">Delete this list?</span>
             <button
               onClick={() => onDeleteList(list.id)}
-              className="text-[11px] font-medium text-white bg-red-600 hover:bg-red-700 rounded px-1.5 py-0.5 transition-colors"
+              className="text-[11px] font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg px-2 py-1 transition-colors"
             >
               Delete
             </button>
             <button
               onClick={() => setConfirmingDelete(false)}
-              className="text-[11px] text-muted hover:text-ink px-1"
+              className="text-[11px] text-muted hover:text-ink px-1.5"
             >
               Cancel
             </button>
@@ -96,10 +97,16 @@ export default function List({
         ) : (
           <button
             onClick={() => setConfirmingDelete(true)}
-            className="text-muted hover:text-red-600 hover:bg-black/5 rounded text-xs px-1.5 py-0.5 shrink-0 transition-colors"
+            className="text-muted hover:text-red-600 hover:bg-black/5 rounded-lg w-6 h-6 flex items-center justify-center shrink-0 transition-colors"
             aria-label={`Delete ${list.title}`}
           >
-            ✕
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path
+                d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0l-1 14a2 2 0 01-2 2H7a2 2 0 01-2-2L4 6h16z"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           </button>
         )}
       </div>
@@ -172,7 +179,7 @@ export default function List({
           onClick={() => setAddingCard(true)}
           className="mt-1 text-left text-muted hover:bg-black/5 text-sm px-2 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
         >
-          <span className="text-base leading-none">+</span> Add a card
+          <span className="text-base leading-none">+</span> Add card
         </button>
       )}
     </div>
