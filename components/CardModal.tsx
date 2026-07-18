@@ -288,7 +288,7 @@ export default function CardModal({
             {attachments.map((att) => (
               <div
                 key={att.id}
-                className="relative w-20 h-20 rounded-lg overflow-hidden bg-board group/att"
+                className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden bg-board group/att"
               >
                 <img
                   src={att.file_url}
@@ -310,7 +310,7 @@ export default function CardModal({
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              className="w-20 h-20 rounded-lg border-2 border-dashed border-line hover:border-accent hover:bg-black/5 flex flex-col items-center justify-center text-muted transition-colors disabled:opacity-50"
+              className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg border-2 border-dashed border-line hover:border-accent hover:bg-black/5 flex flex-col items-center justify-center text-muted transition-colors disabled:opacity-50"
             >
               {uploading ? (
                 <span className="text-[10px]">Uploading…</span>
