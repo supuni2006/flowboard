@@ -40,7 +40,8 @@ export default function CardModal({
   const [coverUrl, setCoverUrl] = useState<string | null>(card.cover_url ?? null)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const imageInputRef = useRef<HTMLInputElement>(null)
+  const docInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -65,8 +66,7 @@ export default function CardModal({
     if (!error) setAttachments((data as Attachment[]) || [])
   }
 
-  const ACCEPTED_TYPES = [
-    'image/',
+  const DOC_TYPES = [
     'application/pdf',
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -78,13 +78,17 @@ export default function CardModal({
   ]
   const MAX_FILE_BYTES = 15 * 1024 * 1024 // 15MB
 
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>, kind: 'image' | 'document') {
     const file = e.target.files?.[0]
     if (!file) return
 
-    const isAccepted = ACCEPTED_TYPES.some((t) => file.type.startsWith(t))
+    const isAccepted = kind === 'image' ? file.type.startsWith('image/') : DOC_TYPES.some((t) => file.type.startsWith(t))
     if (!isAccepted) {
-      setUploadError('That file type isn\'t supported. Try an image, PDF, Word, Excel, PowerPoint, or text file.')
+      setUploadError(
+        kind === 'image'
+          ? 'That file isn\'t an image.'
+          : 'That file type isn\'t supported. Try a PDF, Word, Excel, PowerPoint, or text file.'
+      )
       e.target.value = ''
       return
     }
@@ -133,7 +137,7 @@ export default function CardModal({
       await supabase.storage.from(BUCKET).remove([path])
     } else if (data) {
       setAttachments((prev) => [...prev, data as Attachment])
-      if (file.type.startsWith('image/')) {
+      if (kind === 'image') {
         setCoverUrl(urlData.publicUrl)
         onSave(card.id, { cover_url: urlData.publicUrl })
       }
@@ -325,41 +329,26 @@ export default function CardModal({
             Attachments
           </label>
 
-          <div className="flex flex-wrap gap-2 mb-2">
-            {attachments.map((att) => {
-              const isImage = isImageAttachment(att)
-              const isCover = isImage && coverUrl === att.file_url
-              return (
-                <div
-                  key={att.id}
-                  className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden bg-board group/att ${
-                    isCover ? 'ring-2 ring-accent' : ''
-                  }`}
-                >
-                  {isImage ? (
+          {/* IMAGES ROW */}
+          <p className="text-[11px] font-medium text-muted mb-1">Images</p>
+          <div className="flex flex-nowrap items-center gap-2 mb-3 overflow-x-auto pb-1">
+            {attachments
+              .filter((att) => isImageAttachment(att))
+              .map((att) => {
+                const isCover = coverUrl === att.file_url
+                return (
+                  <div
+                    key={att.id}
+                    className={`relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-lg overflow-hidden bg-board group/att ${
+                      isCover ? 'ring-2 ring-accent' : ''
+                    }`}
+                  >
                     <img
                       src={att.file_url}
                       alt={att.file_name}
                       className="w-full h-full object-cover"
                     />
-                  ) : (
-                    <a
-                      href={att.file_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full h-full flex flex-col items-center justify-center gap-1 px-1 text-muted hover:bg-black/5 transition-colors"
-                    >
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" strokeLinecap="round" strokeLinejoin="round" />
-                        <path d="M14 2v6h6" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                      <span className="text-[9px] leading-tight text-center line-clamp-2 break-all">
-                        {att.file_name}
-                      </span>
-                    </a>
-                  )}
 
-                  {isImage && (
                     <button
                       type="button"
                       onClick={() => toggleCover(att)}
@@ -376,7 +365,64 @@ export default function CardModal({
                         <path d="M21 15l-5-5-6 6" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </button>
-                  )}
+
+                    <button
+                      type="button"
+                      onClick={() => removeAttachment(att)}
+                      aria-label={`Remove ${att.file_name}`}
+                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white text-[10px] flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover/att:opacity-100 transition-opacity"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )
+              })}
+
+            <button
+              type="button"
+              onClick={() => imageInputRef.current?.click()}
+              disabled={uploading}
+              className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-lg border-2 border-dashed border-line hover:border-accent hover:bg-black/5 flex flex-col items-center justify-center text-muted transition-colors disabled:opacity-50"
+            >
+              {uploading ? (
+                <span className="text-[10px]">Uploading…</span>
+              ) : (
+                <>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" stroke="none" />
+                    <path d="M21 15l-5-5-9 9" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <span className="text-[10px] mt-0.5">Add image</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* DOCUMENTS ROW */}
+          <p className="text-[11px] font-medium text-muted mb-1">Documents</p>
+          <div className="flex flex-nowrap items-center gap-2 mb-2 overflow-x-auto pb-1">
+            {attachments
+              .filter((att) => !isImageAttachment(att))
+              .map((att) => (
+                <div
+                  key={att.id}
+                  className="relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-lg overflow-hidden bg-board group/att"
+                >
+                  <a
+                    href={att.file_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full h-full flex flex-col items-center justify-center gap-1 px-1 text-muted hover:bg-black/5 transition-colors"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M14 2v6h6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <span className="text-[9px] leading-tight text-center line-clamp-2 break-all">
+                      {att.file_name}
+                    </span>
+                  </a>
 
                   <button
                     type="button"
@@ -387,33 +433,42 @@ export default function CardModal({
                     ✕
                   </button>
                 </div>
-              )
-            })}
+              ))}
 
             <button
               type="button"
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => docInputRef.current?.click()}
               disabled={uploading}
-              className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg border-2 border-dashed border-line hover:border-accent hover:bg-black/5 flex flex-col items-center justify-center text-muted transition-colors disabled:opacity-50"
+              className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-lg border-2 border-dashed border-line hover:border-accent hover:bg-black/5 flex flex-col items-center justify-center text-muted transition-colors disabled:opacity-50"
             >
               {uploading ? (
                 <span className="text-[10px]">Uploading…</span>
               ) : (
                 <>
-                  <span className="text-lg leading-none">+</span>
-                  <span className="text-[10px] mt-0.5">Add file</span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M14 2v6h6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <span className="text-[10px] mt-0.5">Add document</span>
                 </>
               )}
             </button>
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
-              onChange={handleFileChange}
-              className="hidden"
-            />
           </div>
+
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/*"
+            onChange={(e) => handleFileChange(e, 'image')}
+            className="hidden"
+          />
+          <input
+            ref={docInputRef}
+            type="file"
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
+            onChange={(e) => handleFileChange(e, 'document')}
+            className="hidden"
+          />
 
           {coverUrl && (
             <p className="text-[11px] text-muted mb-2 flex items-center gap-1">
