@@ -7,7 +7,8 @@ import type { Board } from '@/types'
 import { useAuth } from '@/contexts/AuthContext'
 import AuthGuard from '@/components/AuthGuard'
 
-const PALETTE = ['#3D7BFF', '#FFB020', '#2BB673', '#E5484D', '#877323', '#0EA5E9', '#F43F9E', '#14B8A6']
+// A calmer, tonally-consistent palette (professional SaaS, not primary-color toybox)
+const PALETTE = ['#4F6BFF', '#14B8A6', '#F5A524', '#F0554B', '#8B5CF6', '#0EA5E9', '#22C55E', '#EC4899']
 
 export default function DashboardPage() {
   return (
@@ -148,55 +149,83 @@ function Dashboard() {
 
   return (
     <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl sm:text-4xl font-bold text-white">FlowBoard</h1>
-          <p className="text-gray-400 mt-1 sm:mt-2 text-sm sm:text-base">
-            {boards.length} Boards · {user?.email}
-          </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 sm:mb-10">
+        <div className="flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-accent to-[#8B5CF6] flex items-center justify-center shadow-cardDarkHover shrink-0">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <rect x="3" y="4" width="6" height="16" rx="1.5" fill="white" fillOpacity="0.95" />
+              <rect x="11" y="4" width="6" height="10" rx="1.5" fill="white" fillOpacity="0.7" />
+              <rect x="19" y="4" width="2" height="7" rx="1" fill="white" fillOpacity="0.45" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold tracking-[0.14em] text-accent/80 uppercase mb-0.5">
+              Workspace
+            </p>
+            <h1 className="text-2xl sm:text-3xl font-display font-bold text-white leading-none">
+              FlowBoard
+            </h1>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3">
           <button
             onClick={() => setCreating(true)}
-            className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-5 py-2 rounded-lg text-sm sm:text-base"
+            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 bg-gradient-to-b from-accent to-[#3d59e8] hover:brightness-110 active:brightness-95 text-white font-medium px-4 sm:px-5 py-2.5 rounded-xl text-sm shadow-[0_1px_0_rgba(255,255,255,0.2)_inset,0_8px_20px_-8px_rgba(79,107,255,0.6)] transition-all"
           >
-            + New Board
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+            </svg>
+            New Board
           </button>
           <button
             onClick={() => signOut()}
-            className="text-gray-400 hover:text-white text-sm px-3 py-2 rounded-lg transition-colors"
+            className="text-mutedDark hover:text-white text-sm px-3.5 py-2.5 rounded-xl border border-lineDark hover:border-white/20 hover:bg-white/[0.04] transition-colors"
           >
             Sign out
           </button>
         </div>
       </div>
 
+      <p className="text-mutedDark text-sm mb-6 sm:mb-8 -mt-4 sm:-mt-6">
+        <span className="text-white font-medium">{boards.length}</span>{' '}
+        {boards.length === 1 ? 'board' : 'boards'}
+        <span className="mx-2 text-white/15">·</span>
+        {user?.email}
+      </p>
+
       {creating && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex justify-center items-center px-4">
-          <form onSubmit={createBoard} className="bg-gray-900 rounded-xl p-6 w-full max-w-md">
-            <h2 className="text-xl text-white mb-4">Create Board</h2>
+        <div className="fixed inset-0 z-50 bg-[#05070d]/70 backdrop-blur-sm flex justify-center items-center px-4 animate-fade-in">
+          <form
+            onSubmit={createBoard}
+            className="bg-surfaceDark border border-lineDark rounded-2xl p-6 w-full max-w-md shadow-panelDark animate-modal-in"
+          >
+            <h2 className="text-lg font-display font-semibold text-white mb-1">Create board</h2>
+            <p className="text-mutedDark text-sm mb-5">Give your board a name to get started.</p>
+            <label className="block text-xs font-medium text-mutedDark uppercase tracking-wide mb-1.5">
+              Board name
+            </label>
             <input
               autoFocus
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Board name"
-              className="w-full p-3 rounded bg-gray-800 text-white mb-4"
+              placeholder="e.g. Product Launch Q3"
+              className="w-full p-3 rounded-xl bg-canvas border border-lineDark text-white placeholder:text-mutedDark/60 mb-5 outline-none focus:border-accent/60 focus:ring-1 focus:ring-accent/40 transition-colors"
             />
-            <div className="flex justify-end gap-3">
+            <div className="flex justify-end gap-2.5">
               <button
                 type="button"
                 onClick={() => setCreating(false)}
-                className="px-4 py-2 rounded bg-gray-700 text-white"
+                className="px-4 py-2 rounded-xl text-mutedDark hover:text-white hover:bg-white/[0.06] text-sm font-medium transition-colors"
               >
                 Cancel
               </button>
               <button
-                disabled={submitting}
+                disabled={submitting || !title.trim()}
                 type="submit"
-                className="px-4 py-2 rounded bg-blue-600 text-white"
+                className="px-4 py-2 rounded-xl bg-accent hover:brightness-110 disabled:opacity-40 disabled:hover:brightness-100 text-white text-sm font-medium transition-all"
               >
-                {submitting ? 'Creating...' : 'Create'}
+                {submitting ? 'Creating…' : 'Create board'}
               </button>
             </div>
           </form>
@@ -204,26 +233,41 @@ function Dashboard() {
       )}
 
       {loading ? (
-        <div className="text-gray-400">Loading...</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="rounded-2xl h-40 bg-surfaceDark/60 border border-lineDark animate-skeleton"
+            />
+          ))}
+        </div>
       ) : boards.length === 0 ? (
-        <div className="text-center py-20">
-          <h2 className="text-white text-xl mb-4">No Boards Found</h2>
+        <div className="text-center py-24 border border-dashed border-lineDark rounded-2xl">
+          <div className="w-12 h-12 rounded-xl bg-surfaceDark border border-lineDark flex items-center justify-center mx-auto mb-4">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8A93A6" strokeWidth="1.75">
+              <rect x="3" y="4" width="18" height="16" rx="2" />
+              <path d="M3 9h18M9 9v11" strokeLinecap="round" />
+            </svg>
+          </div>
+          <h2 className="text-white text-lg font-display font-semibold mb-1.5">No boards yet</h2>
+          <p className="text-mutedDark text-sm mb-6">Create your first board to start organizing work.</p>
           <button
             onClick={() => setCreating(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg"
+            className="bg-accent hover:brightness-110 text-white font-medium px-5 py-2.5 rounded-xl text-sm transition-all"
           >
-            Create First Board
+            Create first board
           </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
           {boards.map((board) => (
-            <div key={board.id} className="relative group">
+            <div key={board.id} className="relative group animate-card-in">
               {renamingId === board.id ? (
-                <div
-                  className="rounded-xl p-5 h-36 text-white shadow-lg"
-                  style={{ background: board.color }}
-                >
+                <div className="relative rounded-2xl p-5 h-40 bg-surfaceDark border border-lineDark shadow-cardDark overflow-hidden">
+                  <div
+                    className="absolute inset-x-0 top-0 h-[3px]"
+                    style={{ background: `linear-gradient(90deg, ${board.color}, transparent)` }}
+                  />
                   <div className="flex flex-col justify-between h-full">
                     <input
                       autoFocus
@@ -238,16 +282,16 @@ function Dashboard() {
                         }
                         if (e.key === 'Escape') setRenamingId(null)
                       }}
-                      className="text-xl font-bold bg-white/20 rounded px-2 py-1 outline-none ring-1 ring-white/60 w-[85%]"
+                      className="text-lg font-display font-semibold text-white bg-white/[0.06] rounded-lg px-2.5 py-1.5 outline-none ring-1 ring-accent/50 w-[90%]"
                     />
-                    <span className="text-sm opacity-60">Press Enter to save</span>
+                    <span className="text-xs text-mutedDark">Press Enter to save</span>
                   </div>
                 </div>
               ) : confirmingDeleteId === board.id ? (
-                <div className="rounded-xl p-5 h-36 bg-gray-900 border-2 border-red-500/50 shadow-lg flex flex-col justify-between">
+                <div className="rounded-2xl p-5 h-40 bg-surfaceDark border border-[#F0554B]/40 shadow-cardDark flex flex-col justify-between">
                   <div>
-                    <p className="text-white font-semibold mb-1">Delete "{board.title}"?</p>
-                    <p className="text-gray-400 text-xs">
+                    <p className="text-white font-medium text-[15px] mb-1">Delete "{board.title}"?</p>
+                    <p className="text-mutedDark text-xs leading-relaxed">
                       This removes all lists and cards on this board. This can't be undone.
                     </p>
                   </div>
@@ -255,13 +299,13 @@ function Dashboard() {
                     <button
                       onClick={() => deleteBoard(board.id)}
                       disabled={deletingId === board.id}
-                      className="bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-colors"
+                      className="bg-[#F0554B] hover:brightness-110 disabled:opacity-50 text-white text-sm font-medium px-3.5 py-1.5 rounded-lg transition-all"
                     >
                       {deletingId === board.id ? 'Deleting…' : 'Delete'}
                     </button>
                     <button
                       onClick={() => setConfirmingDeleteId(null)}
-                      className="text-gray-400 hover:text-white text-sm px-3 py-1.5 rounded-lg transition-colors"
+                      className="text-mutedDark hover:text-white text-sm px-3.5 py-1.5 rounded-lg hover:bg-white/[0.06] transition-colors"
                     >
                       Cancel
                     </button>
@@ -270,18 +314,48 @@ function Dashboard() {
               ) : (
                 <Link
                   href={`/board/${board.id}`}
-                  className="block rounded-xl p-5 h-36 text-white shadow-lg hover:scale-105 transition"
-                  style={{ background: board.color }}
+                  className="relative flex flex-col justify-between rounded-2xl p-5 h-40 bg-surfaceDark border border-lineDark shadow-cardDark hover:shadow-cardDarkHover hover:-translate-y-0.5 hover:border-white/[0.14] transition-all duration-200 overflow-hidden"
                 >
-                  <div className="flex flex-col justify-between h-full">
-                    <h2 className="text-xl font-bold pr-20 truncate">{board.title}</h2>
-                    <span className="text-sm opacity-80">Open Board →</span>
+                  {/* accent line */}
+                  <div
+                    className="absolute inset-x-0 top-0 h-[3px]"
+                    style={{ background: `linear-gradient(90deg, ${board.color}, transparent 85%)` }}
+                  />
+                  {/* soft color glow, revealed on hover */}
+                  <div
+                    className="absolute -top-10 -right-10 w-40 h-40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-2xl pointer-events-none"
+                    style={{ background: board.color, opacity: 0.14 }}
+                  />
+
+                  <div className="relative flex items-start justify-between gap-2">
+                    <div
+                      className="w-9 h-9 rounded-lg flex items-center justify-center font-display font-semibold text-sm shrink-0"
+                      style={{
+                        background: `${board.color}22`,
+                        color: board.color,
+                        border: `1px solid ${board.color}55`,
+                      }}
+                    >
+                      {board.title.trim().charAt(0).toUpperCase() || 'B'}
+                    </div>
+                  </div>
+
+                  <div className="relative">
+                    <h2 className="text-[17px] font-display font-semibold text-white pr-16 truncate mb-1.5">
+                      {board.title}
+                    </h2>
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-mutedDark group-hover:text-white transition-colors">
+                      Open board
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="translate-y-px group-hover:translate-x-0.5 transition-transform">
+                        <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </span>
                   </div>
                 </Link>
               )}
 
               {renamingId !== board.id && confirmingDeleteId !== board.id && (
-                <div className="absolute top-3 right-3 flex items-center gap-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                <div className="absolute top-3.5 right-3.5 flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                   <div className="relative">
                     <button
                       onClick={(e) => {
@@ -290,9 +364,9 @@ function Dashboard() {
                         setColorPickerId(colorPickerId === board.id ? null : board.id)
                       }}
                       aria-label={`Change color for ${board.title}`}
-                      className="w-7 h-7 rounded-lg bg-black/20 hover:bg-black/35 text-white flex items-center justify-center transition-colors"
+                      className="w-7 h-7 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.06] text-mutedDark hover:text-white flex items-center justify-center transition-colors"
                     >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <circle cx="13.5" cy="6.5" r="1.5" fill="currentColor" stroke="none" />
                         <circle cx="17.5" cy="10.5" r="1.5" fill="currentColor" stroke="none" />
                         <circle cx="8.5" cy="7.5" r="1.5" fill="currentColor" stroke="none" />
@@ -309,7 +383,7 @@ function Dashboard() {
                       <div
                         ref={colorPickerRef}
                         onClick={(e) => e.stopPropagation()}
-                        className="absolute right-0 top-9 z-20 bg-gray-900 rounded-lg shadow-2xl p-2.5 grid grid-cols-4 gap-1.5 w-[132px]"
+                        className="absolute right-0 top-9 z-20 bg-surfaceDarkRaised border border-lineDark rounded-xl shadow-panelDark p-2.5 grid grid-cols-4 gap-1.5 w-[136px]"
                       >
                         {PALETTE.map((c) => (
                           <button
@@ -329,9 +403,9 @@ function Dashboard() {
                   <button
                     onClick={(e) => startRename(board, e)}
                     aria-label={`Rename ${board.title}`}
-                    className="w-7 h-7 rounded-lg bg-black/20 hover:bg-black/35 text-white flex items-center justify-center transition-colors"
+                    className="w-7 h-7 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.06] text-mutedDark hover:text-white flex items-center justify-center transition-colors"
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path
                         d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"
                         strokeLinecap="round"
@@ -347,9 +421,9 @@ function Dashboard() {
                       setConfirmingDeleteId(board.id)
                     }}
                     aria-label={`Delete ${board.title}`}
-                    className="w-7 h-7 rounded-lg bg-black/20 hover:bg-red-600/80 text-white flex items-center justify-center transition-colors"
+                    className="w-7 h-7 rounded-lg bg-white/[0.06] hover:bg-[#F0554B]/80 border border-white/[0.06] hover:border-transparent text-mutedDark hover:text-white flex items-center justify-center transition-colors"
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path
                         d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0l-1 14a2 2 0 01-2 2H7a2 2 0 01-2-2L4 6h16z"
                         strokeLinecap="round"

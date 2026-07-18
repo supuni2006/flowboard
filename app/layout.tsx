@@ -20,7 +20,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-canvas text-ink font-body min-h-screen">
+      <body className="text-ink font-body min-h-screen">
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
