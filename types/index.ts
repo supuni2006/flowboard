@@ -25,6 +25,7 @@ export type CardItem = {
   due_date: string | null
   status: CardStatus
   color: string | null
+  cover_url: string | null
   created_by: string | null
   created_at: string
 }
@@ -37,5 +38,6 @@ export type Attachment = {
   file_url: string
   file_path: string
   file_size: number | null
+  file_type: string | null
   created_at: string
 }

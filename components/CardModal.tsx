@@ -37,6 +37,7 @@ export default function CardModal({
   const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   const [attachments, setAttachments] = useState<Attachment[]>([])
+  const [coverUrl, setCoverUrl] = useState<string | null>(card.cover_url ?? null)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -64,12 +65,32 @@ export default function CardModal({
     if (!error) setAttachments((data as Attachment[]) || [])
   }
 
+  const ACCEPTED_TYPES = [
+    'image/',
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-powerpoint',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'text/plain',
+  ]
+  const MAX_FILE_BYTES = 15 * 1024 * 1024 // 15MB
+
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
 
-    if (!file.type.startsWith('image/')) {
-      setUploadError('Only image files are supported right now.')
+    const isAccepted = ACCEPTED_TYPES.some((t) => file.type.startsWith(t))
+    if (!isAccepted) {
+      setUploadError('That file type isn\'t supported. Try an image, PDF, Word, Excel, PowerPoint, or text file.')
+      e.target.value = ''
+      return
+    }
+
+    if (file.size > MAX_FILE_BYTES) {
+      setUploadError('File is too large. Max size is 15MB.')
       e.target.value = ''
       return
     }
@@ -102,6 +123,7 @@ export default function CardModal({
         file_url: urlData.publicUrl,
         file_path: path,
         file_size: file.size,
+        file_type: file.type,
       })
       .select()
       .single()
@@ -111,14 +133,32 @@ export default function CardModal({
       await supabase.storage.from(BUCKET).remove([path])
     } else if (data) {
       setAttachments((prev) => [...prev, data as Attachment])
+      if (file.type.startsWith('image/')) {
+        setCoverUrl(urlData.publicUrl)
+        onSave(card.id, { cover_url: urlData.publicUrl })
+      }
     }
 
     setUploading(false)
     e.target.value = ''
   }
 
+  function isImageAttachment(att: Attachment) {
+    return (att.file_type ?? '').startsWith('image/') || /\.(png|jpe?g|gif|webp|svg)$/i.test(att.file_name)
+  }
+
+  function toggleCover(att: Attachment) {
+    const next = coverUrl === att.file_url ? null : att.file_url
+    setCoverUrl(next)
+    onSave(card.id, { cover_url: next })
+  }
+
   async function removeAttachment(att: Attachment) {
     setAttachments((prev) => prev.filter((a) => a.id !== att.id))
+    if (coverUrl === att.file_url) {
+      setCoverUrl(null)
+      onSave(card.id, { cover_url: null })
+    }
     await supabase.storage.from(BUCKET).remove([att.file_path])
     await supabase.from('attachments').delete().eq('id', att.id)
   }
@@ -130,6 +170,7 @@ export default function CardModal({
       due_date: dueDate ? new Date(dueDate).toISOString() : null,
       status,
       color,
+      cover_url: coverUrl,
     })
     onClose()
   }
@@ -285,26 +326,69 @@ export default function CardModal({
           </label>
 
           <div className="flex flex-wrap gap-2 mb-2">
-            {attachments.map((att) => (
-              <div
-                key={att.id}
-                className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden bg-board group/att"
-              >
-                <img
-                  src={att.file_url}
-                  alt={att.file_name}
-                  className="w-full h-full object-cover"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeAttachment(att)}
-                  aria-label={`Remove ${att.file_name}`}
-                  className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white text-[10px] flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover/att:opacity-100 transition-opacity"
+            {attachments.map((att) => {
+              const isImage = isImageAttachment(att)
+              const isCover = isImage && coverUrl === att.file_url
+              return (
+                <div
+                  key={att.id}
+                  className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden bg-board group/att ${
+                    isCover ? 'ring-2 ring-accent' : ''
+                  }`}
                 >
-                  ✕
-                </button>
-              </div>
-            ))}
+                  {isImage ? (
+                    <img
+                      src={att.file_url}
+                      alt={att.file_name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <a
+                      href={att.file_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full h-full flex flex-col items-center justify-center gap-1 px-1 text-muted hover:bg-black/5 transition-colors"
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M14 2v6h6" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      <span className="text-[9px] leading-tight text-center line-clamp-2 break-all">
+                        {att.file_name}
+                      </span>
+                    </a>
+                  )}
+
+                  {isImage && (
+                    <button
+                      type="button"
+                      onClick={() => toggleCover(att)}
+                      title={isCover ? 'Remove as cover' : 'Set as cover'}
+                      className={`absolute bottom-1 left-1 w-5 h-5 rounded-full flex items-center justify-center transition-opacity ${
+                        isCover
+                          ? 'bg-accent text-white opacity-100'
+                          : 'bg-black/60 text-white opacity-100 sm:opacity-0 sm:group-hover/att:opacity-100'
+                      }`}
+                    >
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <rect x="3" y="5" width="18" height="14" rx="2" />
+                        <circle cx="8.5" cy="10.5" r="1.5" fill="currentColor" stroke="none" />
+                        <path d="M21 15l-5-5-6 6" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => removeAttachment(att)}
+                    aria-label={`Remove ${att.file_name}`}
+                    className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white text-[10px] flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover/att:opacity-100 transition-opacity"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )
+            })}
 
             <button
               type="button"
@@ -317,7 +401,7 @@ export default function CardModal({
               ) : (
                 <>
                   <span className="text-lg leading-none">+</span>
-                  <span className="text-[10px] mt-0.5">Add image</span>
+                  <span className="text-[10px] mt-0.5">Add file</span>
                 </>
               )}
             </button>
@@ -325,11 +409,30 @@ export default function CardModal({
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
               onChange={handleFileChange}
               className="hidden"
             />
           </div>
+
+          {coverUrl && (
+            <p className="text-[11px] text-muted mb-2 flex items-center gap-1">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <rect x="3" y="5" width="18" height="14" rx="2" />
+              </svg>
+              Cover image set —
+              <button
+                type="button"
+                onClick={() => {
+                  setCoverUrl(null)
+                  onSave(card.id, { cover_url: null })
+                }}
+                className="text-accent hover:underline"
+              >
+                remove
+              </button>
+            </p>
+          )}
 
           {uploadError && (
             <p className="text-[11px] text-red-600 mb-2">{uploadError}</p>

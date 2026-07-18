@@ -82,6 +82,17 @@ export default function Card({
         <div className="h-1 -mx-3 -mt-2.5 mb-2" style={{ backgroundColor: card.color }} />
       )}
 
+      {card.cover_url && (
+        <div className={`-mx-3 ${card.color ? '' : '-mt-2.5'} mb-2`}>
+          <img
+            src={card.cover_url}
+            alt=""
+            className="w-full h-28 object-cover"
+            draggable={false}
+          />
+        </div>
+      )}
+
       <p className={`text-sm text-ink leading-snug ${status === 'deleted' ? 'line-through' : ''}`}>
         {card.title}
       </p>
