@@ -34,6 +34,7 @@ export default function BoardPage({ params }: { params: { id: string } }) {
   const [openCard, setOpenCard] = useState<CardItem | null>(null)
   const [addingList, setAddingList] = useState(false)
   const [newListTitle, setNewListTitle] = useState('')
+  const [cardSearchQuery, setCardSearchQuery] = useState('')
 
   const [editingBoardTitle, setEditingBoardTitle] = useState(false)
   const [boardTitleDraft, setBoardTitleDraft] = useState('')
@@ -345,11 +346,44 @@ export default function BoardPage({ params }: { params: { id: string } }) {
         </div>
 
         {board && (
-          <span className="text-white/40 text-xs shrink-0 sm:ml-auto basis-full sm:basis-auto order-3 sm:order-none">
+          <span className="text-white/40 text-xs shrink-0 hidden sm:inline order-3 sm:order-none">
             {lists.length} list{lists.length === 1 ? '' : 's'} · {cards.length} card
             {cards.length === 1 ? '' : 's'}
           </span>
         )}
+
+        <div className="relative sm:ml-auto w-full sm:w-56 order-4 sm:order-none basis-full sm:basis-auto">
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none"
+          >
+            <circle cx="11" cy="11" r="7" />
+            <path d="m21 21-4.35-4.35" strokeLinecap="round" />
+          </svg>
+          <input
+            value={cardSearchQuery}
+            onChange={(e) => setCardSearchQuery(e.target.value)}
+            placeholder="Search cards…"
+            aria-label="Search cards by title"
+            className="w-full pl-8 pr-7 py-1.5 rounded-lg bg-white/10 border border-white/10 text-white text-sm placeholder:text-white/40 outline-none focus:border-white/30 focus:bg-white/[0.14] transition-colors"
+          />
+          {cardSearchQuery && (
+            <button
+              onClick={() => setCardSearchQuery('')}
+              aria-label="Clear search"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white w-5 h-5 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
+              </svg>
+            </button>
+          )}
+        </div>
 
         {confirmingDeleteBoard ? (
           <div className="flex items-center gap-2 shrink-0 animate-fade-in">
@@ -400,7 +434,11 @@ export default function BoardPage({ params }: { params: { id: string } }) {
                   list={list}
                   cards={cards
                     .filter((c) => c.list_id === list.id)
+                    .filter((c) =>
+                      c.title.toLowerCase().includes(cardSearchQuery.trim().toLowerCase())
+                    )
                     .sort((a, b) => a.position - b.position)}
+                  isSearching={cardSearchQuery.trim().length > 0}
                   onAddCard={addCard}
                   onOpenCard={setOpenCard}
                   onRenameList={renameList}

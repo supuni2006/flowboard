@@ -9,6 +9,7 @@ import type { CardItem, List as ListType } from '@/types'
 export default function List({
   list,
   cards,
+  isSearching = false,
   onAddCard,
   onOpenCard,
   onRenameList,
@@ -17,6 +18,7 @@ export default function List({
 }: {
   list: ListType
   cards: CardItem[]
+  isSearching?: boolean
   onAddCard: (listId: string, title: string) => void
   onOpenCard: (card: CardItem) => void
   onRenameList: (listId: string, title: string) => void
@@ -120,7 +122,7 @@ export default function List({
         <SortableContext items={cards.map((c) => c.id)} strategy={verticalListSortingStrategy}>
           {cards.length === 0 && !isOver && (
             <p className="text-[12px] text-muted/70 px-1.5 py-1 italic select-none">
-              No cards yet
+              {isSearching ? 'No matching cards' : 'No cards yet'}
             </p>
           )}
           {cards.map((card) => (

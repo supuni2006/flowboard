@@ -25,6 +25,7 @@ function Dashboard() {
   const [creating, setCreating] = useState(false)
   const [title, setTitle] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
 
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameDraft, setRenameDraft] = useState('')
@@ -147,6 +148,10 @@ function Dashboard() {
     setDeletingId(null)
   }
 
+  const filteredBoards = boards.filter((b) =>
+    b.title.toLowerCase().includes(searchQuery.trim().toLowerCase())
+  )
+
   return (
     <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 sm:mb-10">
@@ -187,12 +192,45 @@ function Dashboard() {
         </div>
       </div>
 
-      <p className="text-mutedDark text-sm mb-6 sm:mb-8 -mt-4 sm:-mt-6">
+      <p className="text-mutedDark text-sm mb-4 -mt-4 sm:-mt-6">
         <span className="text-white font-medium">{boards.length}</span>{' '}
         {boards.length === 1 ? 'board' : 'boards'}
         <span className="mx-2 text-white/15">·</span>
         {user?.email}
       </p>
+
+      <div className="relative mb-6 sm:mb-8 max-w-sm">
+        <svg
+          width="15"
+          height="15"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-mutedDark pointer-events-none"
+        >
+          <circle cx="11" cy="11" r="7" />
+          <path d="m21 21-4.35-4.35" strokeLinecap="round" />
+        </svg>
+        <input
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search boards…"
+          aria-label="Search boards"
+          className="w-full pl-9 pr-8 py-2.5 rounded-xl bg-surfaceDark border border-lineDark text-white text-sm placeholder:text-mutedDark/60 outline-none focus:border-accent/60 focus:ring-1 focus:ring-accent/40 transition-colors"
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery('')}
+            aria-label="Clear search"
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-mutedDark hover:text-white w-5 h-5 flex items-center justify-center rounded-full hover:bg-white/[0.08] transition-colors"
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
+            </svg>
+          </button>
+        )}
+      </div>
 
       {creating && (
         <div className="fixed inset-0 z-50 bg-[#05070d]/70 backdrop-blur-sm flex justify-center items-center px-4 animate-fade-in">
@@ -258,9 +296,20 @@ function Dashboard() {
             Create first board
           </button>
         </div>
+      ) : filteredBoards.length === 0 ? (
+        <div className="text-center py-24 border border-dashed border-lineDark rounded-2xl">
+          <div className="w-12 h-12 rounded-xl bg-surfaceDark border border-lineDark flex items-center justify-center mx-auto mb-4">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8A93A6" strokeWidth="1.75">
+              <circle cx="11" cy="11" r="7" />
+              <path d="m21 21-4.35-4.35" strokeLinecap="round" />
+            </svg>
+          </div>
+          <h2 className="text-white text-lg font-display font-semibold mb-1.5">No boards found</h2>
+          <p className="text-mutedDark text-sm">No boards match "{searchQuery}".</p>
+        </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-          {boards.map((board) => (
+          {filteredBoards.map((board) => (
             <div key={board.id} className="relative group animate-card-in">
               {renamingId === board.id ? (
                 <div className="relative rounded-2xl p-5 h-40 bg-surfaceDark border border-lineDark shadow-cardDark overflow-hidden">
